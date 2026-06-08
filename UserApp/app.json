@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "Coca-Cola Nhận Quà",
+    "slug": "userapp-nhan-qua",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": { "backgroundColor": "#E8003D" },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "cocacola-nhanqua",
+    "extra": {
+      "appsScriptUrl": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
+    }
+  }
+}

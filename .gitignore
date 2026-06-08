@@ -1,0 +1,17 @@
+# 1. Chặn tất cả mọi thứ
+/*
+
+# 2. Nhưng cho phép 2 folder này
+!UserApp/
+!GameApp/
+
+# 3. Và cho phép chính tệp .gitignore này
+!.gitignore
+
+# 4. Loại bỏ các file rác bên trong 2 folder đó (tùy chọn)
+UserApp/node_modules/
+UserApp/.env
+UserApp/.expo/
+GameApp/node_modules/
+GameApp/.env
+GameApp/.expo/

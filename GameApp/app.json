@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Coca-Cola Goal Rush",
+    "slug": "gameapp-goal-rush",
+    "version": "1.0.0",
+    "orientation": "landscape",
+    "userInterfaceStyle": "dark",
+    "splash": { "backgroundColor": "#E8003D" },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.interdist.gameapp"
+    },
+    "android": {
+      "adaptiveIcon": { "backgroundColor": "#E8003D" },
+      "package": "com.interdist.gameapp",
+      "intentFilters": []
+    },
+    "extra": {
+      "userAppUrl": "https://YOUR_USERAPP_DOMAIN.com"
+    }
+  }
+}
