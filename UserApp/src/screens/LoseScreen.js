@@ -1,15 +1,16 @@
 // UserApp/src/screens/LoseScreen.js — RESPONSIVE
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView, Platform, Linking, Image, ImageBackground
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useApp } from '../context/AppContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { getGameAppURL } from '@shared/env';
 import SharedStyles from '../components/SharedStyles';
 import AmbientBubbles from '../components/AmbientBubbles';
 import CocaButton from '../components/CocaButton';
+import { audioHelper } from '../services/AudioHelper';
 
 const BG_IMAGE = require('../../assets/bg_main.jpeg');
 
@@ -21,6 +22,15 @@ export default function LoseScreen() {
   const shakeX  = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      audioHelper.startWelcomeMusic();
+      return () => {
+        audioHelper.stopWelcomeMusic();
+      };
+    }, [])
+  );
 
   useEffect(() => {
     Animated.parallel([

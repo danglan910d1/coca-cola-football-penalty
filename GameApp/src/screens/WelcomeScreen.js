@@ -1,13 +1,14 @@
 // GameApp/src/screens/WelcomeScreen.js
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Animated, Image, ScrollView, Platform, ImageBackground
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useResponsive } from '../hooks/useResponsive';
 import SharedStyles from '../components/SharedStyles';
 import AmbientBubbles from '../components/AmbientBubbles';
 import CocaButton from '../components/CocaButton';
+import { audioEngine } from '../services/AudioEngine';
 
 const BG_IMAGE = require('../../assets/bg_main.jpeg');
 const LOGO_IMAGE = require('../../assets/logo_coca.png');
@@ -25,6 +26,15 @@ export default function WelcomeScreen() {
   const btnOpacity   = useRef(new Animated.Value(0)).current;
   const btnScale     = useRef(new Animated.Value(0.85)).current;
   const pulse        = useRef(new Animated.Value(1)).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      audioEngine.startWelcomeMusic();
+      return () => {
+        audioEngine.stopWelcomeMusic();
+      };
+    }, [])
+  );
 
   useEffect(() => {
     Animated.sequence([

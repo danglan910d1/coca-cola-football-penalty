@@ -1,9 +1,9 @@
 // UserApp/src/screens/ResultScreen.js — CLASSIC PREMIUM RESULT SCREEN
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Animated, Image, Easing, ScrollView, Platform, Linking, ImageBackground
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useApp } from '../context/AppContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { getGameAppURL } from '@shared/env';
@@ -12,6 +12,7 @@ import AmbientBubbles from '../components/AmbientBubbles';
 import FireworksCanvas from '../components/FireworksCanvas';
 import CocaButton from '../components/CocaButton';
 import { Theme } from '../components/Theme';
+import { audioHelper } from '../services/AudioHelper';
 
 const BG_IMAGE = require('../../assets/bg_main.jpeg'); // Sửa đuôi ảnh sang .jpeg
 const LOGO_IMAGE = require('../../assets/logo_coca.png');
@@ -70,6 +71,15 @@ export default function ResultScreen() {
   const btnOpacity   = useRef(new Animated.Value(0)).current;
   const floatAnim    = useRef(new Animated.Value(0)).current;
 
+  useFocusEffect(
+    useCallback(() => {
+      audioHelper.startWelcomeMusic();
+      return () => {
+        audioHelper.stopWelcomeMusic();
+      };
+    }, [])
+  );
+
   useEffect(() => {
     Animated.sequence([
       Animated.spring(trophyScale, { toValue: 1, friction: 5, tension: 50, useNativeDriver: true }),
@@ -95,14 +105,15 @@ export default function ResultScreen() {
     navigation.reset({ index: 0, routes: [{ name: 'InputForm' }] });
   };
 
-  // Ánh xạ Emoji tương ứng với từng ID quà tặng
-  const getGiftEmoji = (id) => {
-    if (id.includes('tshirt')) return '👕';
-    if (id.includes('bottle')) return '🧴';
-    if (id.includes('tumbler')) return '🥤';
-    if (id.includes('bag')) return '🎒';
-    return '🎁';
-  };
+const GIFT_IMAGES = {
+  tui_vai_thoi_trang: require('../../assets/img_gift/tui_vai_thoi_trang.png'),
+  binh_giu_nhiet: require('../../assets/img_gift/binh_giu_nhiet.png'),
+  tui_the_thao: require('../../assets/img_gift/tui_the_thao.png'),
+  ly_giu_nhiet: require('../../assets/img_gift/ly_giu_nhiet.png'),
+  tui_vai_phien_ban_gioi_han: require('../../assets/img_gift/tui_vai_phien_ban_gioi_han.png'),
+  tshirt_red: require('../../assets/img_gift/t_shirt_do.png'),
+  tshirt_grey: require('../../assets/img_gift/t_shirt_xam.png'),
+};
 
   return (
     <View style={styles.root}>
@@ -112,7 +123,7 @@ export default function ResultScreen() {
         <AmbientBubbles />
         <FireworksCanvas active={true} />
 
-        <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={[styles.scrollContainer, { paddingTop: rs(isTablet ? 40 : 20), paddingBottom: rs(isTablet ? 30 : 20) }]} showsVerticalScrollIndicator={false}>
 
           {/* Confetti */}
           {confetti.map(p => (
@@ -121,7 +132,7 @@ export default function ResultScreen() {
 
           {/* Logo branding ở đỉnh */}
           <View style={styles.logoWrap} className="logo-glow animate-logo-float">
-            <Image source={LOGO_IMAGE} style={[styles.logo, { width: rs(isTablet ? 240 : 180), height: rs(isTablet ? 75 : 55) }]} />
+            <Image source={LOGO_IMAGE} resizeMode="contain" style={[styles.logo, { width: rs(isTablet ? 160 : 120), height: rs(isTablet ? 50 : 37) }]} />
           </View>
 
           {/* Card Kính mờ sáng nhạt chứa toàn bộ nội dung hân hoan */}
@@ -133,7 +144,8 @@ export default function ResultScreen() {
                 width: '100%', 
                 maxWidth: isTablet ? 580 : 400, 
                 alignSelf: 'center',
-                transform: [{ translateY: floatAnim }]
+                transform: [{ translateY: floatAnim }],
+                marginTop: rs(isTablet ? 20 : 12)
               }
             ]}
             className="form-glass"
@@ -146,9 +158,21 @@ export default function ResultScreen() {
                 styles.floatingGift, 
                 { transform: [{ scale: giftScale }] }
               ]}>
-                <Text style={[styles.giftEmoji, { fontSize: rs(isTablet ? 160 : 120) }]}>
-                  {getGiftEmoji(gift.id)}
-                </Text>
+                {gift.id && GIFT_IMAGES[gift.id] ? (
+                  <Image
+                    source={GIFT_IMAGES[gift.id]}
+                    resizeMode="contain"
+                    style={{
+                      width: rs(isTablet ? 220 : 150),
+                      height: rs(isTablet ? 220 : 150),
+                      zIndex: 10,
+                    }}
+                  />
+                ) : (
+                  <Text style={[styles.giftEmoji, { fontSize: rs(isTablet ? 160 : 120) }]}>
+                    🎁
+                  </Text>
+                )}
                 {/* Hào quang lấp lánh sau món quà */}
                 <View style={styles.giftGlow} />
               </Animated.View>
@@ -158,10 +182,10 @@ export default function ResultScreen() {
             <View style={styles.titleWrap}>
               <Text style={styles.celebrationBadge}>🎉 XIN CHÚC MỪNG 🎉</Text>
               
-              <Text style={[styles.headingText, { fontSize: rs(isTablet ? 38 : 28) }]}>
+              <Text style={[styles.headingText, { fontSize: rs(isTablet ? 38 : 42) }]}>
                 SÚT CỰC CHÁY,
               </Text>
-              <Text style={[styles.headingText, { fontSize: rs(isTablet ? 38 : 28) }, { color: '#FFD700' }]}>
+              <Text style={[styles.headingText, { fontSize: rs(isTablet ? 38 : 42) }, { color: '#FFD700' }]}>
                 QUÀ TRAO TAY!
               </Text>
               
@@ -221,11 +245,10 @@ const styles = StyleSheet.create({
   logoWrap: {
     alignItems: 'center',
     marginTop: 4,
-    marginBottom: 14,
+    marginBottom: 2,
     zIndex: 10,
   },
   logo: {
-    resizeMode: 'contain',
   },
   card: {
     paddingHorizontal: 24,
@@ -350,7 +373,7 @@ const styles = StyleSheet.create({
     transform: 'translateX(-50%)',
     width: 280,
     height: 200,
-    background: 'radial-gradient(ellipse at top, rgba(255, 215, 0, 0.3) 0%, rgba(255, 215, 0, 0.0) 70%)',
+    backgroundImage: 'radial-gradient(ellipse at top, rgba(255, 215, 0, 0.3) 0%, rgba(255, 215, 0, 0.0) 70%)',
     clipPath: 'polygon(30% 0%, 70% 0%, 100% 100%, 0% 100%)',
     pointerEvents: 'none',
     zIndex: 1,

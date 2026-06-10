@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { Pressable, Text, StyleSheet, View, Platform } from 'react-native';
 import { Theme } from './Theme';
 import { useResponsive } from '../hooks/useResponsive';
+import { audioHelper } from '../services/AudioHelper';
 
 export default function CocaButton({ 
   title, 
@@ -49,6 +50,13 @@ export default function CocaButton({
     return () => clearInterval(interval);
   }, [disabled, loading]);
 
+  const handlePress = () => {
+    audioHelper.playButtonClick();
+    if (onPress) {
+      onPress();
+    }
+  };
+
   return (
     <View style={[styles.wrapper, { marginVertical: isTablet ? 10 : 6 }]}>
       {/* Absolute bubble container for rising particles */}
@@ -67,7 +75,7 @@ export default function CocaButton({
           disabled && styles.disabled,
           style
         ]}
-        onPress={onPress}
+        onPress={handlePress}
         disabled={disabled || loading}
       >
         {/* Gradient Overlay for high-end look */}

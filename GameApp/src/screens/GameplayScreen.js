@@ -4,7 +4,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   Dimensions, Linking, Modal, Share, Platform, Image, ScrollView, ImageBackground
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { getUserAppURL } from '@shared/env';
 import SharedStyles from '../components/SharedStyles';
 import AmbientBubbles from '../components/AmbientBubbles';
@@ -241,7 +241,7 @@ export default function GameplayScreen() {
 
   const ballSize = rs(isTablet ? 130 : 88);
   const startX = containerSize.width / 2 - ballSize / 2;
-  const startY = containerSize.height - rs(isTablet ? 195 : 160);
+  const startY = containerSize.height - rs(isTablet ? 195 : 145);
 
   // Reanimated ball values
   const ballX = useSharedValue(0);
@@ -275,23 +275,36 @@ export default function GameplayScreen() {
     resetBall();
   }, [startX, startY]);
 
-  // Start background music and loop animations
   useEffect(() => {
-    audioEngine.init();
-    if (!isMuted) {
-      audioEngine.startMusic();
-    }
-
     endScreenBallRotation.value = withRepeat(
       withTiming(360, { duration: 3000, easing: Easing.linear }),
       -1,
       false
     );
+  }, []);
 
-    return () => {
-      audioEngine.stopMusic();
-    };
-  }, [isMuted]);
+  // Handle switching background music between gameplay and game over result screen
+  useFocusEffect(
+    useCallback(() => {
+      audioEngine.init();
+      if (isMuted) {
+        audioEngine.stopMusic();
+        audioEngine.stopWelcomeMusic();
+      } else {
+        if (isComplete) {
+          audioEngine.stopMusic();
+          audioEngine.startWelcomeMusic();
+        } else {
+          audioEngine.stopWelcomeMusic();
+          audioEngine.startMusic();
+        }
+      }
+      return () => {
+        audioEngine.stopMusic();
+        audioEngine.stopWelcomeMusic();
+      };
+    }, [isComplete, isMuted])
+  );
 
   const onGoalLayout = useCallback((e) => {
     const { x, y, width, height } = e.nativeEvent.layout;
@@ -300,15 +313,7 @@ export default function GameplayScreen() {
 
   // Toggle Mute
   const handleToggleMute = () => {
-    setIsMuted(prev => {
-      const next = !prev;
-      if (next) {
-        audioEngine.stopMusic();
-      } else {
-        audioEngine.startMusic();
-      }
-      return next;
-    });
+    setIsMuted(prev => !prev);
   };
 
   // Drag & Shoot Math mapping
@@ -393,7 +398,7 @@ export default function GameplayScreen() {
     // Ball radius as percentage of goal dimensions
     const ballRadiusPctX = 0.06; // Horizontal radius relative to goal width
     const ballRadiusPctY = 0.10; // Vertical radius relative to goal height
-    
+
     // Post positions (outer edges of the goal frame)
     const leftPostInner = 0.24;  // Inner edge of left post
     const rightPostInner = 0.76; // Inner edge of right post  
@@ -407,10 +412,10 @@ export default function GameplayScreen() {
     const isPost = hitsLeftPost || hitsRightPost || hitsCrossbar;
 
     // Clean goal: ball center must be strictly inside the goal opening
-    const isGoal = !isPost 
-      && (targetX > leftPostInner + ballRadiusPctX) 
-      && (targetX < rightPostInner - ballRadiusPctX) 
-      && (targetY > crossbarBottom + ballRadiusPctY) 
+    const isGoal = !isPost
+      && (targetX > leftPostInner + ballRadiusPctX)
+      && (targetX < rightPostInner - ballRadiusPctX)
+      && (targetY > crossbarBottom + ballRadiusPctY)
       && (targetY < 0.95);
 
     // Play kick sound
@@ -593,7 +598,7 @@ export default function GameplayScreen() {
               </View>
 
               <View style={styles.missedTitleWrap}>
-                <Text style={[styles.missedTitle, { fontSize: rs(isTablet ? 46 : 32) }]}>{titleText}</Text>
+                <Text style={[styles.missedTitle, { fontSize: rs(isTablet ? 46 : 42) }]}>{titleText}</Text>
               </View>
 
               <View style={styles.missedSubtitleBadge}>
@@ -744,12 +749,14 @@ export default function GameplayScreen() {
             <View style={[
               styles.aimTargetIndicator,
               {
-                left: targetX * goalLayout.width - 35,
-                top: targetY * goalLayout.height - 35
+                left: targetX * goalLayout.width - (isTablet ? 35 : 25),
+                top: targetY * goalLayout.height - (isTablet ? 35 : 25),
+                width: isTablet ? 70 : 50,
+                height: isTablet ? 70 : 50,
               }
             ]}>
-              <View style={styles.aimTargetInnerCircle} />
-              <View style={styles.aimTargetOuterRing} />
+              <View style={[styles.aimTargetInnerCircle, { width: isTablet ? 18 : 12, height: isTablet ? 18 : 12, borderRadius: isTablet ? 9 : 6 }]} />
+              <View style={[styles.aimTargetOuterRing, { width: isTablet ? 70 : 50, height: isTablet ? 70 : 50, borderRadius: isTablet ? 35 : 25 }]} />
             </View>
           )}
         </View>
@@ -838,14 +845,14 @@ export default function GameplayScreen() {
         {/* Miss Flash Overlay - just shows "TRƯỢT" text */}
         {showMissFlash && (
           <Animated.View style={[styles.missOverlay, missFlashAnimatedStyle]}>
-            <Text style={styles.missText}>TRƯỢT</Text>
+            <Text style={[styles.missText, { fontSize: isTablet ? 80 : 54, letterSpacing: isTablet ? 6 : 4 }]}>TRƯỢT</Text>
           </Animated.View>
         )}
 
         {/* Instruction Footer hint */}
         {!isComplete && (
           <View style={styles.footerHintWrap}>
-            <Text style={styles.footerHintText}>
+            <Text style={[styles.footerHintText, { fontSize: isTablet ? 14 : 11 }]}>
               {isDragging ? "KÉO BÓNG CÀNG SÂU LỰC SÚT CÀNG MẠNH!" : "CHẠM KÉO BÓNG LÙI VỀ SAU ĐỂ CĂN LỰC SÚT"}
             </Text>
           </View>
@@ -856,7 +863,7 @@ export default function GameplayScreen() {
           <Animated.View style={[styles.victoryOverlay, goalFlashAnimatedStyle]}>
             <AmbientBubbles />
             <GoalFireworks active={showGoalFlash} />
-            <Text style={styles.victoryText}>VÀO!!!</Text>
+            <Text style={[styles.victoryText, { fontSize: isTablet ? 72 : 52, letterSpacing: isTablet ? 4 : 3 }]}>VÀO!!!</Text>
           </Animated.View>
         )}
 
@@ -900,8 +907,8 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingTop: 12,
+    paddingBottom: 14,
   },
   bgOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -919,15 +926,15 @@ const styles = StyleSheet.create({
   scoreboardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '98%',
+    width: '94%',
     marginTop: 5,
     maxWidth: 1100,
     backgroundColor: 'rgba(10, 50, 20, 0.55)',
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 28,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 30,
     zIndex: 10,
     backdropFilter: 'blur(15px)',
     boxShadow: '0 12px 35px rgba(0,0,0,0.3)',
@@ -1143,9 +1150,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   missText: {
-    color: '#CBD5E1', // Silver-grey neon
+    color: '#CBD5E1',
     fontFamily: 'Anton',
-    fontSize: 80,
+    fontSize: 80, // overridden inline for phone
     fontWeight: '900',
     letterSpacing: 6,
     textShadowColor: 'rgba(148, 163, 184, 0.6)',

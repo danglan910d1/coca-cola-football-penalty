@@ -1,4 +1,36 @@
-// GameApp/src/services/AudioEngine.js
+import { Platform, Image } from 'react-native';
+
+// CẤU HÌNH ÂM THANH (AUDIO CONFIGURATION)
+export const AUDIO_CONFIG = {
+  loopWelcomeMusic: true,  // true để lặp lại nhạc chào (nếu ngắn), false để không lặp (nếu dài)
+  loopGameplayMusic: true, // true để lặp lại nhạc chơi game (nếu ngắn), false để không lặp (nếu dài)
+  welcomeVolume: 0.35,     // Âm lượng nhạc chào/kết quả (từ 0.0: tắt tiếng, đến 1.0: lớn nhất)
+  gameplayVolume: 0.4,     // Âm lượng nhạc đá phạt (từ 0.0: tắt tiếng, đến 1.0: lớn nhất)
+};
+
+/**
+ * Hàm phụ trợ giải quyết đường dẫn âm thanh cực kỳ mạnh mẽ
+ * Tương thích hoàn toàn với tất cả định dạng import/require của Metro Bundler trên Web
+ */
+function resolveAssetUri(asset) {
+  if (!asset) return '';
+  if (typeof asset === 'string') return asset;
+  if (typeof asset === 'number') {
+    const resolved = Image.resolveAssetSource(asset);
+    return resolved ? resolved.uri : '';
+  }
+  if (typeof asset === 'object') {
+    if (asset.uri) return asset.uri;
+    if (asset.default) {
+      if (typeof asset.default === 'string') return asset.default;
+      if (asset.default.uri) return asset.default.uri;
+    }
+    const resolved = Image.resolveAssetSource(asset);
+    return resolved ? resolved.uri : '';
+  }
+  return '';
+}
+
 class AudioEngine {
   constructor() {
     this.ctx = null;
@@ -9,6 +41,79 @@ class AudioEngine {
     this.beatDuration = 60 / this.tempo; // Duration of one beat in seconds
     this.currentStep = 0;
     this.bassPattern = [36, 36, 39, 39, 43, 43, 41, 41]; // Midi notes for bassline (C1, C1, Eb1, Eb1, G1, G1, F1, F1)
+    
+    this.welcomeAudio = null;
+    this.gameplayAudio = null;
+    this.welcomeInteractionListener = null;
+    this.gameplayInteractionListener = null;
+    if (Platform.OS === 'web') {
+      try {
+        const welcomeAsset = require('../../assets/bg_welcome.mp3');
+        const welcomeUri = resolveAssetUri(welcomeAsset);
+        this.welcomeAudio = new Audio(welcomeUri);
+        this.welcomeAudio.loop = AUDIO_CONFIG.loopWelcomeMusic;
+        this.welcomeAudio.volume = AUDIO_CONFIG.welcomeVolume;
+      } catch (e) {
+        console.warn("AudioEngine welcomeAudio init error:", e);
+      }
+      try {
+        const gameplayAsset = require('../../assets/bg_gameplay.mp3');
+        const gameplayUri = resolveAssetUri(gameplayAsset);
+        this.gameplayAudio = new Audio(gameplayUri);
+        this.gameplayAudio.loop = AUDIO_CONFIG.loopGameplayMusic;
+        this.gameplayAudio.volume = AUDIO_CONFIG.gameplayVolume;
+      } catch (e) {
+        console.warn("AudioEngine gameplayAudio init error:", e);
+      }
+    }
+  }
+
+  cleanupWelcomeListener() {
+    if (this.welcomeInteractionListener) {
+      window.removeEventListener('click', this.welcomeInteractionListener);
+      window.removeEventListener('touchstart', this.welcomeInteractionListener);
+      this.welcomeInteractionListener = null;
+    }
+  }
+
+  cleanupGameplayListener() {
+    if (this.gameplayInteractionListener) {
+      window.removeEventListener('click', this.gameplayInteractionListener);
+      window.removeEventListener('touchstart', this.gameplayInteractionListener);
+      this.gameplayInteractionListener = null;
+    }
+  }
+
+  startWelcomeMusic() {
+    if (this.welcomeAudio) {
+      this.welcomeAudio.loop = AUDIO_CONFIG.loopWelcomeMusic;
+      this.welcomeAudio.volume = AUDIO_CONFIG.welcomeVolume;
+      this.welcomeAudio.currentTime = 0;
+      
+      this.cleanupWelcomeListener();
+
+      const playPromise = this.welcomeAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.warn("Welcome music autoplay blocked, waiting for user interaction:", error);
+          this.welcomeInteractionListener = () => {
+            this.welcomeAudio.loop = AUDIO_CONFIG.loopWelcomeMusic;
+            this.welcomeAudio.volume = AUDIO_CONFIG.welcomeVolume;
+            this.welcomeAudio.play().catch(e => console.warn("Play on interaction failed:", e));
+            this.cleanupWelcomeListener();
+          };
+          window.addEventListener('click', this.welcomeInteractionListener);
+          window.addEventListener('touchstart', this.welcomeInteractionListener);
+        });
+      }
+    }
+  }
+
+  stopWelcomeMusic() {
+    this.cleanupWelcomeListener();
+    if (this.welcomeAudio) {
+      this.welcomeAudio.pause();
+    }
   }
 
   init() {
@@ -63,17 +168,34 @@ class AudioEngine {
       if (!this.ctx || this.isMusicPlaying) return;
 
       this.isMusicPlaying = true;
-      this.currentStep = 0;
 
       // Start stadium crowd noise
       this.createCrowdNoise();
 
-      // Schedule the rhythmic loop
-      const nextNoteTime = this.ctx.currentTime;
-      this.musicInterval = setInterval(() => {
-        if (!this.ctx) return;
-        this.playBeatStep();
-      }, (this.beatDuration / 2) * 1000); // 8th note steps
+      if (this.gameplayAudio) {
+        this.gameplayAudio.loop = AUDIO_CONFIG.loopGameplayMusic;
+        this.gameplayAudio.volume = AUDIO_CONFIG.gameplayVolume;
+        this.gameplayAudio.currentTime = 0;
+        
+        this.cleanupGameplayListener();
+
+        const playPromise = this.gameplayAudio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.warn("Gameplay music autoplay blocked, waiting for user interaction:", error);
+            this.gameplayInteractionListener = () => {
+              if (this.isMusicPlaying) {
+                this.gameplayAudio.loop = AUDIO_CONFIG.loopGameplayMusic;
+                this.gameplayAudio.volume = AUDIO_CONFIG.gameplayVolume;
+                this.gameplayAudio.play().catch(e => console.warn("Play on interaction failed:", e));
+              }
+              this.cleanupGameplayListener();
+            };
+            window.addEventListener('click', this.gameplayInteractionListener);
+            window.addEventListener('touchstart', this.gameplayInteractionListener);
+          });
+        }
+      }
     } catch (e) {
       console.warn("AudioEngine startMusic error:", e);
     }
@@ -81,9 +203,9 @@ class AudioEngine {
 
   stopMusic() {
     this.isMusicPlaying = false;
-    if (this.musicInterval) {
-      clearInterval(this.musicInterval);
-      this.musicInterval = null;
+    this.cleanupGameplayListener();
+    if (this.gameplayAudio) {
+      this.gameplayAudio.pause();
     }
     if (this.crowdNode) {
       try {
@@ -369,6 +491,32 @@ class AudioEngine {
       });
     } catch (e) {
       console.warn("AudioEngine playWhistle error:", e);
+    }
+  }
+
+  // --- Sound FX: Button Click ---
+  playButtonClick() {
+    try {
+      this.init();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, now);
+      osc.frequency.exponentialRampToValueAtTime(300, now + 0.08);
+
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+      osc.start(now);
+      osc.stop(now + 0.1);
+    } catch (e) {
+      console.warn("Audio Context error:", e);
     }
   }
 }

@@ -1,33 +1,41 @@
 // UserApp/src/screens/WheelScreen.js — CLASSIC PREMIUM 3D WHEEL
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   Animated, ActivityIndicator, Image, Easing, Platform, ScrollView, ImageBackground
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useApp } from '../context/AppContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { getAvailableGifts, spinWheel } from '../config/giftConfig';
-import { decrementStock, submitResult, fetchGiftStock } from '../services/sheetsApi';
+import { submitResult, fetchGiftStock } from '../services/sheetsApi';
 import { audioHelper } from '../services/AudioHelper';
 import SharedStyles from '../components/SharedStyles';
 import AmbientBubbles from '../components/AmbientBubbles';
 import FireworksCanvas from '../components/FireworksCanvas';
 import CocaButton from '../components/CocaButton';
+import CocaModal from '../components/CocaModal';
 
 const BG_IMAGE = require('../../assets/bg_main.jpeg');
 const LOGO_IMAGE = require('../../assets/logo_coca.png');
 
-const getGiftEmoji = (id) => {
-  if (!id) return '🎁';
-  const lowerId = id.toLowerCase();
-  if (lowerId.includes('tshirt')) return '👕';
-  if (lowerId.includes('bottle')) return '🥤';
-  if (lowerId.includes('tumbler')) return '🥤';
-  if (lowerId.includes('tote_bag')) return '👜';
-  if (lowerId.includes('sport_bag')) return '🎒';
-  if (lowerId.includes('placeholder')) return '⭐';
-  return '🎁';
+import resolveAssetSource from 'react-native/Libraries/Image/resolveAssetSource';
+
+const GIFT_IMAGES = {
+  tui_vai_thoi_trang: require('../../assets/img_gift/tui_vai_thoi_trang.png'),
+  binh_giu_nhiet: require('../../assets/img_gift/binh_giu_nhiet.png'),
+  tui_the_thao: require('../../assets/img_gift/tui_the_thao.png'),
+  ly_giu_nhiet: require('../../assets/img_gift/ly_giu_nhiet.png'),
+  tui_vai_phien_ban_gioi_han: require('../../assets/img_gift/tui_vai_phien_ban_gioi_han.png'),
+  tshirt_red: require('../../assets/img_gift/t_shirt_do.png'),
+  tshirt_grey: require('../../assets/img_gift/t_shirt_xam.png'),
+};
+
+const getGiftImageUri = (id) => {
+  const asset = GIFT_IMAGES[id];
+  if (!asset) return '';
+  const resolved = resolveAssetSource(asset);
+  return resolved ? resolved.uri : '';
 };
 
 export default function WheelScreen() {
@@ -37,7 +45,7 @@ export default function WheelScreen() {
 
   const isSpinningRef = useRef(false); // Ref để theo dõi trạng thái quay thực tế của âm thanh
 
-  const location = user.location || 'HCM';
+  const storeId = user.storeId || user.location || 'STORE_HCM_MALL_01';
   
   const [gifts, setGifts]             = useState([]);
   const [isLoadingStock, setIsLoadingStock] = useState(true);
@@ -76,16 +84,39 @@ export default function WheelScreen() {
   const spinAngle = useRef(new Animated.Value(0)).current;
   const fadeIn     = useRef(new Animated.Value(0)).current;
   const headerY    = useRef(new Animated.Value(-30)).current;
+  const capPulse   = useRef(new Animated.Value(1)).current;
+  const capGlow    = useRef(new Animated.Value(0)).current;
+
+  const [outOfStockModalVisible, setOutOfStockModalVisible] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      audioHelper.stopWelcomeMusic();
+      return () => {};
+    }, [])
+  );
+
+  const handleGoBack = () => {
+    audioHelper.playButtonClick();
+    resetAll();
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'InputForm' }],
+    });
+  };
 
   // Lấy dữ liệu tồn kho thực tế
   const loadStock = async () => {
     try {
       setIsLoadingStock(true);
       setStockError(null);
-      const stockData = await fetchGiftStock(location);
-      const available = getAvailableGifts(location, stockData);
+      const stockData = await fetchGiftStock(storeId);
+      const available = getAvailableGifts(storeId, stockData);
       setGifts(available);
       setIsLoadingStock(false);
+      if (available.length === 0) {
+        setOutOfStockModalVisible(true);
+      }
     } catch (err) {
       setStockError(err.message || 'Lỗi tải danh sách quà');
       setIsLoadingStock(false);
@@ -94,7 +125,7 @@ export default function WheelScreen() {
 
   useEffect(() => {
     loadStock();
-  }, [location]);
+  }, [storeId]);
 
   // Sắp xếp xen kẽ các phần quà tỉ lệ trúng cao và thấp
   const interleaveGifts = (arr) => {
@@ -111,23 +142,9 @@ export default function WheelScreen() {
     return result;
   };
 
-  // Thiết lập danh sách 8 ô quà trên vòng quay động (nếu thiếu, điền thêm "Chúc May Mắn")
+  // Thiết lập danh sách các ô quà trên vòng quay động
   const wheelItems = useMemo(() => {
-    const interleaved = interleaveGifts(gifts);
-    const items = [];
-    interleaved.forEach(g => items.push(g));
-    
-    while (items.length < 8) {
-      items.push({
-        id: 'placeholder_' + items.length,
-        name: 'MAY MẮN\nLẦN SAU',
-        shortName: 'May Mắn',
-        color: '#F8F9FA',
-        probability: 0.1,
-        isPlaceholder: true,
-      });
-    }
-    return items.slice(0, 8);
+    return interleaveGifts(gifts);
   }, [gifts]);
 
   // Entrance animations
@@ -136,10 +153,26 @@ export default function WheelScreen() {
       Animated.timing(fadeIn,  { toValue: 1, duration: 600, useNativeDriver: true }),
       Animated.timing(headerY, { toValue: 0, duration: 500, useNativeDriver: true }),
     ]).start();
+
+    // Cap pulse loop
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(capPulse, { toValue: 1.12, duration: 900, useNativeDriver: true }),
+        Animated.timing(capPulse, { toValue: 1.0,  duration: 900, useNativeDriver: true }),
+      ])
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(capGlow, { toValue: 1, duration: 1100, useNativeDriver: true }),
+        Animated.timing(capGlow, { toValue: 0, duration: 1100, useNativeDriver: true }),
+      ])
+    ).start();
   }, []);
 
   // ── Spin logic ─────────────────────────────────────────────────────────────
   const handleSpin = () => {
+    audioHelper.playButtonClick();
     if (isSpinning || hasSpun || gifts.length === 0 || isLoadingStock) return;
     
     setIsSpinning(true);
@@ -157,9 +190,10 @@ export default function WheelScreen() {
 
     // 2. Tìm sector index của phần quà trúng trên vòng quay động
     let sectorIndex = wheelItems.findIndex(item => item.id === wonGift.id);
-    if (sectorIndex === -1) sectorIndex = 7;
+    if (sectorIndex === -1) sectorIndex = 0;
 
-    const itemAngle = 45; // 360 / 8 sectors
+    const N = wheelItems.length;
+    const itemAngle = N > 0 ? 360 / N : 360;
     const centerOfSegment = (sectorIndex * itemAngle) + (itemAngle / 2);
     
     // Tính góc quay cần dừng để sector nằm ở vị trí 12h (Công thức đúng là 360 - centerOfSegment do SVG path đã dịch góc sẵn)
@@ -212,11 +246,8 @@ export default function WheelScreen() {
       // Lưu kết quả ngầm (không chặn UI)
       try {
         setIsSubmitting(true);
-        if (!wonGift.id.includes("placeholder")) {
-          await decrementStock(location, wonGift.id);
-        }
         await submitResult({
-          location,
+          storeId,
           user,
           gift: wonGift,
         });
@@ -228,9 +259,13 @@ export default function WheelScreen() {
     });
   };
 
-  const handleGoResult = () => navigation.navigate('Result');
+  const handleGoResult = () => {
+    audioHelper.playButtonClick();
+    navigation.navigate('Result');
+  };
 
   const handleGoHome = () => {
+    audioHelper.playButtonClick();
     resetAll();
     navigation.reset({ index: 0, routes: [{ name: 'InputForm' }] });
   };
@@ -265,6 +300,9 @@ export default function WheelScreen() {
     extrapolate: 'extend'
   });
 
+  const N = wheelItems.length;
+  const itemAngle = N > 0 ? 360 / N : 360;
+
   return (
     <View style={styles.root}>
       <SharedStyles />
@@ -282,7 +320,7 @@ export default function WheelScreen() {
         style={styles.logoWrap} 
         className="logo-glow animate-logo-float"
       >
-        <Image source={LOGO_IMAGE} style={[styles.logo, { width: rs(isTablet ? 240 : 180), height: rs(isTablet ? 75 : 55) }]} />
+        <Image source={LOGO_IMAGE} resizeMode="contain" style={[styles.logo, { width: rs(isTablet ? 240 : 180), height: rs(isTablet ? 75 : 55) }]} />
       </TouchableOpacity>
 
       {/* Header Bar */}
@@ -294,11 +332,11 @@ export default function WheelScreen() {
         {/* Tiêu đề "QUAY LÀ TRÚNG!" bọc khung trắng hoàn hảo */}
         <View style={styles.headlineWrap} className="animate-title-pop">
           <View style={styles.titleRow}>
-            <Text style={[styles.mainHeading, { fontSize: rs(isTablet ? 48 : 36) }]}>
+            <Text style={[styles.mainHeading, { fontSize: rs(isTablet ? 48 : 42) }]}>
               QUAY LÀ{' '}
             </Text>
             <View style={styles.highlightContainer}>
-              <Text style={[styles.highlightText, { fontSize: rs(isTablet ? 48 : 36) }]}>
+              <Text style={[styles.highlightText, { fontSize: rs(isTablet ? 48 : 42) }]}>
                 TRÚNG!
               </Text>
             </View>
@@ -362,81 +400,137 @@ export default function WheelScreen() {
               />
 
               {/* Draw Slices */}
-              {wheelItems.map((item, i) => {
-                const startAngle = i * 45;
-                const endAngle = (i + 1) * 45;
-                const startRad = (startAngle - 90) * Math.PI / 180;
-                const endRad = (endAngle - 90) * Math.PI / 180;
-                const x1 = 200 + 180 * Math.cos(startRad);
-                const y1 = 200 + 180 * Math.sin(startRad);
-                const x2 = 200 + 180 * Math.cos(endRad);
-                const y2 = 200 + 180 * Math.sin(endRad);
-                const d = `M 200 200 L ${x1} ${y1} A 180 180 0 0 1 ${x2} ${y2} Z`;
-                
-                // Xen kẽ Đỏ Coca-Cola và Trắng Bạc sáng
-                const fillColor = i % 2 === 0 ? '#F40009' : '#F8F9FA';
-                
-                // Màu chữ tương phản: Vàng trên Đỏ, Slate 800 trên Trắng Bạc
-                const textFill = i % 2 === 0 ? '#FFD700' : '#1e293b';
-                
-                const midAngle = startAngle + 22.5;
-                const textRad = (midAngle - 90) * Math.PI / 180;
-                const tx = 200 + 116 * Math.cos(textRad); // Shift slightly back to balance text and emoji within the sector
-                const ty = 200 + 116 * Math.sin(textRad);
-                
-                const lines = item.name.split('\n');
-
-                return (
-                  <g key={item.id}>
-                    {/* Vẽ đường viền đỏ sậm mảnh nhưng cực kỳ sắc nét bao quanh các sector */}
-                    <path d={d} fill={fillColor} stroke="#B30006" stroke-width="1.2" />
-                    
-                    {/* Radial Label Text directly on the sector with high-contrast outlines */}
-                    <g transform={`translate(${tx}, ${ty}) rotate(${midAngle})`}>
-                      {/* Gift Text with thick outline for extreme prominence */}
-                      {lines.map((line, idx) => (
-                        <text
-                          key={idx}
-                          y={idx * 21 - (lines.length - 1) * 10.5 + (lines.length === 1 ? 3 : 0)}
-                          textAnchor="middle"
-                          fill={textFill}
-                          stroke={i % 2 === 0 ? '#000000' : '#FFFFFF'} // Viền đen trên nền đỏ, viền trắng trên nền trắng bạc
-                          stroke-width={i % 2 === 0 ? '4.5' : '3.5'}
-                          paint-order="stroke fill"
-                          stroke-linejoin="round"
-                          fontFamily="Anton"
-                          fontSize="18"
-                          letterSpacing="0.6"
-                          fontWeight="900"
-                          filter="url(#shadow)"
-                        >
-                          {line.toUpperCase()}
-                        </text>
-                      ))}
-                      
-                      {/* Emoji Icon */}
+              {N === 1 ? (
+                <g>
+                  {/* Full Circle */}
+                  <circle cx="200" cy="200" r="180" fill="#F40009" stroke="#B30006" stroke-width="1.2" />
+                  
+                  {/* Text at the bottom (rotated 180 degrees so it faces up when rotated 180 degrees) */}
+                  <g transform="translate(200, 316) rotate(180)">
+                    {wheelItems[0].name.split('\n').map((line, idx) => (
                       <text
-                        y="35"
+                        key={idx}
+                        y={idx * 21}
                         textAnchor="middle"
-                        fontSize="22"
-                        stroke={i % 2 === 0 ? '#000000' : 'none'}
-                        stroke-width="2.5"
+                        fill="#FFD700"
+                        stroke="#000000"
+                        stroke-width="4.5"
                         paint-order="stroke fill"
                         stroke-linejoin="round"
-                        style={{
-                          filter: 'drop-shadow(0px 2px 3px rgba(0,0,0,0.4))'
-                        }}
+                        fontFamily="Anton"
+                        fontSize="18"
+                        letterSpacing="0.6"
+                        fontWeight="900"
+                        filter="url(#shadow)"
                       >
-                        {getGiftEmoji(item.id)}
+                        {line.toUpperCase()}
                       </text>
-                    </g>
+                    ))}
+                    {/* White backing circle to highlight the gift image */}
+                    <circle
+                      cx="0"
+                      cy="38"
+                      r="24"
+                      fill="#FFFFFF"
+                      stroke="#FFD700"
+                      stroke-width="1.8"
+                      style={{
+                        filter: 'drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.25))'
+                      }}
+                    />
+                    <image
+                      href={getGiftImageUri(wheelItems[0].id)}
+                      x="-22"
+                      y="16"
+                      width="44"
+                      height="44"
+                      preserveAspectRatio="xMidYMid meet"
+                      style={{
+                        filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.35))'
+                      }}
+                    />
                   </g>
-                );
-              })}
+                </g>
+              ) : (
+                wheelItems.map((item, i) => {
+                  const startAngle = i * itemAngle;
+                  const endAngle = (i + 1) * itemAngle;
+                  const startRad = (startAngle - 90) * Math.PI / 180;
+                  const endRad = (endAngle - 90) * Math.PI / 180;
+                  const x1 = 200 + 180 * Math.cos(startRad);
+                  const y1 = 200 + 180 * Math.sin(startRad);
+                  const x2 = 200 + 180 * Math.cos(endRad);
+                  const y2 = 200 + 180 * Math.sin(endRad);
+                  const d = `M 200 200 L ${x1} ${y1} A 180 180 0 0 1 ${x2} ${y2} Z`;
+                  
+                  // Xen kẽ Đỏ Coca-Cola và Trắng Bạc sáng
+                  const fillColor = i % 2 === 0 ? '#F40009' : '#F8F9FA';
+                  
+                  // Màu chữ tương phản: Vàng trên Đỏ, Slate 800 trên Trắng Bạc
+                  const textFill = i % 2 === 0 ? '#FFD700' : '#1e293b';
+                  
+                  const midAngle = startAngle + itemAngle / 2;
+                  const textRad = (midAngle - 90) * Math.PI / 180;
+                  const tx = 200 + 116 * Math.cos(textRad);
+                  const ty = 200 + 116 * Math.sin(textRad);
+                  
+                  const lines = item.name.split('\n');
+
+                  return (
+                    <g key={item.id}>
+                      <path d={d} fill={fillColor} stroke="#B30006" stroke-width="1.2" />
+                      <g transform={`translate(${tx}, ${ty}) rotate(${midAngle})`}>
+                        {lines.map((line, idx) => (
+                          <text
+                            key={idx}
+                            y={idx * 21 - (lines.length - 1) * 10.5 + (lines.length === 1 ? 3 : 0)}
+                            textAnchor="middle"
+                            fill={textFill}
+                            stroke={i % 2 === 0 ? '#000000' : '#FFFFFF'}
+                            stroke-width={i % 2 === 0 ? '4.5' : '3.5'}
+                            paint-order="stroke fill"
+                            stroke-linejoin="round"
+                            fontFamily="Anton"
+                            fontSize="18"
+                            letterSpacing="0.6"
+                            fontWeight="900"
+                            filter="url(#shadow)"
+                          >
+                            {line.toUpperCase()}
+                          </text>
+                        ))}
+                        {/* White backing circle to highlight the gift image */}
+                        <circle
+                          cx="0"
+                          cy="38"
+                          r="24"
+                          fill="#FFFFFF"
+                          stroke="#FFD700"
+                          stroke-width="1.8"
+                          style={{
+                            filter: 'drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.25))'
+                          }}
+                        />
+                        <image
+                          href={getGiftImageUri(item.id)}
+                          x="-22"
+                          y="16"
+                          width="44"
+                          height="44"
+                          preserveAspectRatio="xMidYMid meet"
+                          style={{
+                            filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.35))'
+                          }}
+                        />
+                      </g>
+                    </g>
+                  );
+                })
+              )}
 
               {/* Gold boundary pins */}
-              {Array.from({ length: 8 }).map((_, i) => {
-                const angle = i * 45;
+              {Array.from({ length: N }).map((_, i) => {
+                const angle = i * itemAngle;
                 const rad = (angle - 90) * Math.PI / 180;
                 const px = 200 + 180 * Math.cos(rad);
                 const py = 200 + 180 * Math.sin(rad);
@@ -478,6 +572,55 @@ export default function WheelScreen() {
             </svg>
           </Animated.View>
         )}
+        {/* Bottle Cap Touch Button — only shown when gifts are loaded */}
+        {!isLoadingStock && !stockError && gifts.length > 0 && (
+          <>
+            {/* Cap pulse glow ring */}
+            {!hasSpun && (
+              <Animated.View
+                style={[
+                  styles.capGlowRing,
+                  {
+                    opacity: capGlow,
+                    transform: [{ scale: capPulse }],
+                  }
+                ]}
+                pointerEvents="none"
+              />
+            )}
+
+            <TouchableOpacity
+              activeOpacity={hasSpun ? 1 : 0.75}
+              onPress={!hasSpun && !isSpinning ? handleSpin : undefined}
+              style={styles.capTouchArea}
+              disabled={hasSpun || isSpinning}
+            >
+              <Animated.View style={[
+                styles.capOuter,
+                !hasSpun && { transform: [{ scale: capPulse }] }
+              ]}>
+                <View style={styles.capMetalRing} />
+                <View style={styles.capRedCircle}>
+                  <View style={styles.capShimmer} />
+                  {isSpinning ? (
+                    <ActivityIndicator size="small" color="#FFD700" />
+                  ) : hasSpun ? (
+                    <Text style={styles.capText}>✓</Text>
+                  ) : (
+                    <View style={styles.capLogoWrap}>
+                      <Image
+                        source={LOGO_IMAGE}
+                        style={styles.capLogoImage}
+                        resizeMode="contain"
+                      />
+                      <Text style={styles.capRegistered}>®</Text>
+                    </View>
+                  )}
+                </View>
+              </Animated.View>
+            </TouchableOpacity>
+          </>
+        )}
 
       </Animated.View>
 
@@ -497,19 +640,19 @@ export default function WheelScreen() {
         </Animated.View>
       )}
 
-      {/* ── Bottom Controls (Unified with CocaButton) ── */}
+      {/* ── Bottom Controls — only show after spin ── */}
       <View style={[styles.bottomControls, { width: '100%', maxWidth: 420 }]}>
-        {!hasSpun ? (
-          <CocaButton
-            title={isLoadingStock ? 'ĐANG ĐỒNG BỘ...' : isSpinning ? 'ĐANG VẬN HÀNH...' : gifts.length === 0 ? 'HẾT QUÀ TRÊN SHEETS' : 'SÚT BÓNG QUAY NGAY'}
-            onPress={handleSpin}
-            disabled={isSpinning || isLoadingStock || gifts.length === 0}
-          />
-        ) : (
+        {hasSpun ? (
           <CocaButton
             title="XEM PHIẾU QUÀ →"
             onPress={handleGoResult}
           />
+        ) : (
+          <View style={styles.tapHintWrap}>
+            <Text style={styles.tapHintText}>
+              {isLoadingStock ? 'Đang nạp dữ liệu...' : gifts.length === 0 ? 'Đã hết quà tặng!' : '↑  Nhấn nắp chai để quay'}
+            </Text>
+          </View>
         )}
       </View>
 
@@ -570,6 +713,14 @@ export default function WheelScreen() {
           </View>
         </View>
       )}
+      <CocaModal
+        visible={outOfStockModalVisible}
+        title="Thông Báo"
+        message="Số phần quà tại cửa hàng này đã hết!"
+        confirmText="ĐÓNG"
+        onConfirm={handleGoBack}
+        onClose={handleGoBack}
+      />
         </ScrollView>
       </ImageBackground>
     </View>
@@ -603,7 +754,6 @@ const styles = StyleSheet.create({
   logo: {
     width: 180,
     height: 55,
-    resizeMode: 'contain',
   },
   header: {
     alignItems: 'center',
@@ -958,5 +1108,133 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     fontSize: 11,
     fontWeight: 'bold',
+  },
+
+  // ── Bottle Cap Spin Button ─────────────────────────────────────────────────
+  capTouchArea: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 50,
+    cursor: 'pointer',
+  },
+  capGlowRing: {
+    position: 'absolute',
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 3,
+    borderColor: '#FFD700',
+    zIndex: 49,
+    boxShadow: '0 0 20px rgba(255,215,0,0.9), 0 0 40px rgba(255,215,0,0.5)',
+  },
+  capOuter: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Metallic outer ring effect via shadow
+    boxShadow: '0 4px 18px rgba(0,0,0,0.55), 0 0 0 4px #B8860B, 0 0 0 6px #FFD700',
+  },
+  capMetalRing: {
+    position: 'absolute',
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 3,
+    borderColor: '#FFD700',
+    backgroundColor: '#D4A800',
+  },
+  capRedCircle: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: '#F40009',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#9E0005',
+    boxShadow: 'inset 0 -4px 8px rgba(0,0,0,0.35), inset 0 4px 8px rgba(255,255,255,0.2)',
+  },
+  capShimmer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    borderTopLeftRadius: 31,
+    borderTopRightRadius: 31,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  capText: {
+    color: '#FFD700',
+    fontFamily: 'Anton',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    lineHeight: 14,
+  },
+  capTextSub: {
+    color: '#FFFFFF',
+    fontFamily: 'Anton',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    lineHeight: 11,
+  },
+  capLogoWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    width: 52,
+    height: 32,
+  },
+  capLogoImage: {
+    width: 48,
+    height: 22,
+    tintColor: '#FFFFFF',
+  },
+  capRegistered: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    color: '#FFD700',
+    fontSize: 8,
+    fontWeight: '900',
+    lineHeight: 9,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  tapHintWrap: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    alignSelf: 'center',
+  },
+  tapHintText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: 'Hanken Grotesk',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 });

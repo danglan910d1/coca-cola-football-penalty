@@ -1,17 +1,14 @@
 // UserApp/src/config/giftConfig.js — SAME LOGIC as before, shared between projects
 export const GIFT_CATALOG = {
   SHARED: [
-    { id: 'tote_bag_large',  name: 'Tote Bag',          shortName: 'Tote Bag',    totalStock: 1500, color: '#E8003D' },
-    { id: 'aluminum_bottle', name: 'Bình Nhôm\nCoca-Cola', shortName: 'Bình Nhôm', totalStock: 1000, color: '#C0392B' },
-    { id: 'tumbler',         name: 'Ly Tumbler',         shortName: 'Tumbler',     totalStock: 400,  color: '#CB4335' },
-    { id: 'tote_bag_noodle', name: 'Tote Bag\nTô Mì',   shortName: 'Tote Mì',    totalStock: 200,  color: '#E74C3C' },
-    { id: 'sport_bag',       name: 'Túi Thể Thao',      shortName: 'Sport Bag',   totalStock: 100,  color: '#922B21' },
+    { id: 'tui_vai_thoi_trang',          name: 'Túi Vải Coca\nthời trang',      shortName: 'Túi Vải',        totalStock: 2000, color: '#E8003D' },
+    { id: 'binh_giu_nhiet',              name: 'Bình giữ nhiệt',                shortName: 'Bình giữ nhiệt', totalStock: 1000, color: '#C0392B' },
+    { id: 'tui_the_thao',                name: 'Túi thể thao',                  shortName: 'Túi thể thao',   totalStock: 100,  color: '#CB4335' },
+    { id: 'ly_giu_nhiet',                name: 'Ly giữ nhiệt',                  shortName: 'Ly giữ nhiệt',   totalStock: 400,  color: '#E74C3C' },
+    { id: 'tshirt_red',                  name: 'T-shirt đỏ',                    shortName: 'T-shirt đỏ',     totalStock: 200,  color: '#D35400' },
+    { id: 'tshirt_grey',                 name: 'T-shirt xám',                   shortName: 'T-shirt xám',    totalStock: 100,  color: '#717D7E' },
   ],
-  HCM: [
-    { id: 'tote_bag_agency', name: 'Túi Tote\nAgency',  shortName: 'Tote Agency', totalStock: 500,  color: '#D35400' },
-    { id: 'tshirt_red',      name: 'T-Shirt Đỏ',        shortName: 'Áo Đỏ',      totalStock: 200,  color: '#E8003D' },
-    { id: 'tshirt_grey',     name: 'T-Shirt Xám',       shortName: 'Áo Xám',     totalStock: 100,  color: '#717D7E' },
-  ],
+  HCM: [],
   HN: [],
 };
 

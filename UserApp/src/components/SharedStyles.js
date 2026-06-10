@@ -155,12 +155,66 @@ export default function SharedStyles() {
         filter: drop-shadow(0 0 15px rgba(244, 0, 9, 0.5)) !important;
       }
 
+      /* Force dropdown list to float above animated 3D button on web */
+      .form-area-container {
+        z-index: 100 !important;
+        position: relative !important;
+      }
+      .btn-wrap-container {
+        z-index: 1 !important;
+        position: relative !important;
+      }
+
       .form-glass {
         background: rgba(255, 255, 255, 0.82) !important; /* Kính mờ sáng */
         backdrop-filter: blur(25px) !important;
         border: 2.5px solid rgba(244, 0, 9, 0.3) !important; /* Viền đỏ classic Coca-Cola */
         box-shadow: 0 30px 60px -12px rgba(71, 85, 105, 0.25), 0 0 40px rgba(244, 0, 9, 0.1) !important; /* Đổ bóng sáng dịu */
         transition: transform 0.1s ease-out;
+      }
+
+      .coca-select {
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
+        color: #1E293B !important;
+        font-weight: 700 !important;
+        border-radius: 12px !important;
+        padding: 11px 14px !important;
+        padding-right: 40px !important;
+        font-size: 15px !important;
+        width: 100% !important;
+        margin-bottom: 14px !important;
+        outline: none !important;
+        font-family: 'Outfit', sans-serif !important;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+        background-repeat: no-repeat !important;
+        background-position: right 14px center !important;
+        background-size: 16px !important;
+        transition: all 0.2s ease !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18) !important;
+        cursor: pointer !important;
+      }
+      .coca-select:focus {
+        border-color: #F40009 !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 0 10px rgba(244, 0, 9, 0.25), 0 2px 8px rgba(71, 85, 105, 0.1) !important;
+      }
+      .coca-select:disabled {
+        background-color: rgba(255, 255, 255, 0.6) !important;
+        color: #94A3B8 !important;
+        border-color: rgba(255, 255, 255, 0.3) !important;
+        cursor: not-allowed !important;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+      }
+      @media (min-width: 768px) {
+        .coca-select {
+          padding: 16px 20px !important;
+          font-size: 20px !important;
+          border-radius: 12px !important;
+        }
       }
 
       /* 3D Spotlight Effect */
