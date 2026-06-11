@@ -20,6 +20,7 @@ GameApp/node_modules/
 GameApp/.env
 GameApp/.expo/
 GameApp/dist/
+GameApp/public/assets/videos
 
 AdminApp/node_modules/
 AdminApp/.vercel/
