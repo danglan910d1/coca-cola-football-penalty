@@ -22,4 +22,5 @@ GameApp/.expo/
 GameApp/dist/
 
 AdminApp/node_modules/
-AdminApp/.vercel/
+AdminApp/.vercel/
+AdminApp/config.js
