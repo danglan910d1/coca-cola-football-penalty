@@ -1,19 +1,24 @@
-# coca-cola-football-penalty
-Coca-Cola Interactive Engagement System featuring a Penalty Shootout Game and a Lucky Wheel. Includes both UserApp and GameApp modules for customer loyalty and promotion.
+# Coca-Cola Interactive Event Engagement System
+Một hệ thống trò chơi tương tác đa nền tảng (Web/Mobile) phục vụ cho chiến dịch Marketing/Event của Coca-Cola, kết hợp giữa Trò chơi sút phạt Penalty 3D và Vòng quay may mắn đồng bộ tồn kho thời gian thực.
 
-# Coca-Cola Football Penalty & Lucky Wheel
+Hệ thống được thiết kế theo kiến trúc **Serverless** tối ưu chi phí hạ tầng (Zero-Cost Hosting) bằng cách tận dụng Google Sheets làm Cơ sở dữ liệu và Google Apps Script (GAS) làm Backend API.
 
-Hệ thống trò chơi tương tác cho chiến dịch Coca-Cola, bao gồm:
+---
 
-## Các Module chính:
-- **GameApp**: Trò chơi sút bóng Penalty (Penalty Shootout) với cơ chế kéo-thả, hỗ trợ trình duyệt web và thiết bị di động.
-- **UserApp**: Hệ thống vòng quay may mắn (Lucky Wheel) tích hợp quản lý quà tặng và tồn kho theo thời gian thực.
+## 1. Cấu Trúc Dự Án (Project Structure)
 
-## Công nghệ sử dụng:
-- React Native / Expo
-- Reanimated (Animation)
-- Web Audio API (Âm thanh)
+Dự án bao gồm 3 phân hệ chính và thư mục cấu hình dùng chung:
 
-## Hướng dẫn khởi chạy:
-- Sử dụng lệnh `npm install` trong từng thư mục.
-- Chạy `npm run dev` để khởi động ứng dụng.
+*   **`GameApp/`**: Game sút phạt Penalty 3D tương tác. Người chơi vuốt bóng (Flick/Drag) để sút qua thủ môn AI có khả năng nhảy cản phá tự động. (React Native / Expo).
+*   **`UserApp/`**: Form đăng ký thông tin khách hàng và Vòng quay may mắn (Lucky Wheel). Tự động lấy tồn kho thực tế tại từng chi nhánh để tính toán tỷ lệ trúng thưởng thời gian thực. (React Native / Expo).
+*   **`AdminApp/`**: Trang quản trị (Dashboard) cho phép quản lý nhập/xuất kho quà tặng thời gian thực và khôi phục nhanh hệ thống (Wipe database). (Vanilla HTML / CSS / JS).
+*   **`shared/`**: Thư mục chứa cấu hình môi trường dùng chung (`env.js`) của GameApp và UserApp. *(Thư mục này đã được ẩn trên Git vì lý do bảo mật thông tin kết nối API).*
+*   **`CocaColaShootout/google-apps-script/`**: Chứa mã nguồn backend Google Apps Script (`Code.gs`) phục vụ cho cơ sở dữ liệu Google Sheets.
+
+---
+
+## 2. Công Nghệ Sử Dụng (Tech Stack)
+*   **Frontend**: React Native, Expo SDK, Reanimated (Xử lý Animation), Expo AV (Web Audio API).
+*   **Admin Dashboard**: HTML5, Vanilla CSS3, JavaScript ES6.
+*   **Backend & DB**: Google Apps Script (RESTful API Endpoint), Google Sheets DB (Tích hợp cơ chế khóa luồng `LockService` xử lý bất đồng bộ tranh chấp ghi/đọc dữ liệu).
+*   **Hosting**: Vercel.
