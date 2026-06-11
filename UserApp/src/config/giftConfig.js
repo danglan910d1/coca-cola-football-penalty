@@ -18,20 +18,24 @@ export function getAvailableGifts(location, stockData = null) {
     ...g,
     currentStock: stockData ? (stockData[g.id] ?? 0) : g.totalStock,
   }));
-  const available = withStock.filter(g => g.currentStock > 0);
-  if (!available.length) return [];
-  const total = available.reduce((s, g) => s + g.currentStock, 0);
-  return available.map(g => ({
+  // Tính tổng tồn kho chỉ từ các quà có stock > 0 (dùng để tính tỉ lệ)
+  const winnableTotal = withStock.reduce((s, g) => s + Math.max(0, g.currentStock), 0);
+  // Trả về TẤT CẢ quà để hiển thị trên vòng quay
+  // Quà hết hàng (currentStock = 0) sẽ có probability = 0 → không bao giờ trúng
+  return withStock.map(g => ({
     ...g,
-    probability: g.currentStock / total,
-    probabilityPercent: Number(((g.currentStock / total) * 100).toFixed(1)),
+    probability: winnableTotal > 0 && g.currentStock > 0 ? g.currentStock / winnableTotal : 0,
+    probabilityPercent: winnableTotal > 0 && g.currentStock > 0 ? Number(((g.currentStock / winnableTotal) * 100).toFixed(1)) : 0,
   }));
 }
 
 export function spinWheel(gifts) {
   if (!gifts?.length) return null;
+  // Chỉ chọn từ các quà có xác suất > 0 (tức có tồn kho)
+  const winnable = gifts.filter(g => g.probability > 0);
+  if (!winnable.length) return null;
   const rand = Math.random();
   let cum = 0;
-  for (const g of gifts) { cum += g.probability; if (rand <= cum) return g; }
-  return gifts[gifts.length - 1];
+  for (const g of winnable) { cum += g.probability; if (rand <= cum) return g; }
+  return winnable[winnable.length - 1];
 }

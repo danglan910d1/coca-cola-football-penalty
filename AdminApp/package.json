@@ -1,0 +1,8 @@
+{
+  "name": "coca-cola-football-penalty-admin",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node sync-env.js"
+  }
+}

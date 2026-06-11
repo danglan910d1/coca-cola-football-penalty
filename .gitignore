@@ -1,17 +1,25 @@
-# 1. Chặn tất cả mọi thứ
+# 1. Chặn tất cả mọi thứ theo mặc định để tránh file rác ở thư mục gốc
 /*
 
-# 2. Nhưng cho phép 2 folder này
+# 2. Nhưng cho phép các thư mục dự án và file cấu hình này
 !UserApp/
 !GameApp/
-
-# 3. Và cho phép chính tệp .gitignore này
+!AdminApp/
 !.gitignore
+!README.md
+!start-dev.ps1
+!test-backend.ps1
 
-# 4. Loại bỏ các file rác bên trong 2 folder đó (tùy chọn)
+# 3. Loại bỏ các file rác bên trong các folder đó
 UserApp/node_modules/
 UserApp/.env
 UserApp/.expo/
+UserApp/dist/
+
 GameApp/node_modules/
 GameApp/.env
 GameApp/.expo/
+GameApp/dist/
+
+AdminApp/node_modules/
+AdminApp/.vercel/

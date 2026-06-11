@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Trị Kho - Coca-Cola</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;700;800&family=Outfit:wght@400;600;800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo-container">
+                <img src="logo_coca.png" id="logo-img" alt="Coca-Cola Logo">
+            </div>
+            <h1>QUẢN LÝ KHO QUÀ TẶNG</h1>
+        </header>
+
+        <main class="card">
+            <!-- Tabs -->
+            <div class="tabs hidden">
+                <button class="tab-btn active" data-tab="nhap">NHẬP KHO MỚI</button>
+                <button class="tab-btn" data-tab="capnhat">BÙ / TRỪ KHO</button>
+            </div>
+
+            <!-- Global Loading Indicator -->
+            <div id="global-loading" class="loading">
+                <div class="spinner"></div>
+                <div
+                    style="font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 800; color: var(--text-muted); margin-top: 10px; text-transform: uppercase; letter-spacing: 1px;">
+                    Đang tải dữ liệu hệ thống...</div>
+            </div>
+
+            <!-- Notification banner -->
+            <div id="alert-banner" class="alert hidden"></div>
+
+            <!-- Form Nhập Mới -->
+            <div id="tab-nhap" class="tab-content hidden">
+                <section class="section">
+                    <h2>CHỌN ĐỊA ĐIỂM CỬA HÀNG</h2>
+
+                    <div class="form-group">
+                        <label for="nhap-region">Khu vực *</label>
+                        <div class="searchable-select">
+                            <input type="text" id="nhap-region" placeholder="-- Chọn/Nhập Khu vực --"
+                                autocomplete="off">
+                            <span class="select-arrow"></span>
+                            <div class="select-dropdown" id="nhap-region-dropdown"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nhap-type">Phân loại *</label>
+                        <div class="searchable-select">
+                            <input type="text" id="nhap-type" placeholder="-- Chọn/Nhập Phân loại --"
+                                autocomplete="off">
+                            <span class="select-arrow"></span>
+                            <div class="select-dropdown" id="nhap-type-dropdown"></div>
+                        </div>
+                    </div>
+
+                    <div id="nhap-cum-group" class="form-group hidden">
+                        <label for="nhap-cum">Tên Cụm trung tâm thương mại *</label>
+                        <div class="searchable-select">
+                            <input type="text" id="nhap-cum" placeholder="-- Chọn/Nhập Cụm --" autocomplete="off">
+                            <span class="select-arrow"></span>
+                            <div class="select-dropdown" id="nhap-cum-dropdown"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nhap-store">Tên Cửa Hàng *</label>
+                        <div class="searchable-select">
+                            <input type="text" id="nhap-store" placeholder="-- Chọn/Nhập Cửa Hàng --"
+                                autocomplete="off">
+                            <span class="select-arrow"></span>
+                            <div class="select-dropdown" id="nhap-store-dropdown"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="nhap-items-section" class="section">
+                    <h2>DANH SÁCH QUÀ TẶNG NHẬP KHO</h2>
+
+                    <div id="loading-stock-indicator-nhap" class="loading hidden">
+                        Đang kiểm tra tồn kho cửa hàng...
+                    </div>
+
+                    <div id="nhap-fields" class="hidden">
+                        <div id="nhap-items-container">
+                            <!-- Dynamic rows here -->
+                        </div>
+
+                        <button type="button" id="add-item-btn" class="btn btn-secondary">+ THÊM DÒNG QUÀ TẶNG</button>
+
+                        <div class="form-group">
+                            <label for="nhap-ghi-chu">Ghi chú nhập hàng</label>
+                            <input type="text" id="nhap-ghi-chu" placeholder="Ví dụ: Nhập hàng đợt 1">
+                        </div>
+
+                        <button type="button" id="submit-nhap-btn" class="btn btn-primary">LƯU DỮ LIỆU NHẬP KHO</button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Form Cập Nhật -->
+            <div id="tab-capnhat" class="tab-content hidden">
+                <section class="section">
+                    <h2>CHỌN ĐỊA ĐIỂM CỬA HÀNG</h2>
+
+                    <div class="form-group">
+                        <label for="cap-region">Khu vực *</label>
+                        <div class="searchable-select">
+                            <input type="text" id="cap-region" placeholder="-- Chọn/Nhập Khu vực --" autocomplete="off">
+                            <span class="select-arrow"></span>
+                            <div class="select-dropdown" id="cap-region-dropdown"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cap-type">Phân loại *</label>
+                        <div class="searchable-select">
+                            <input type="text" id="cap-type" placeholder="-- Chọn/Nhập Phân loại --" autocomplete="off">
+                            <span class="select-arrow"></span>
+                            <div class="select-dropdown" id="cap-type-dropdown"></div>
+                        </div>
+                    </div>
+
+                    <div id="cap-cum-group" class="form-group hidden">
+                        <label for="cap-cum">Tên Cụm trung tâm thương mại *</label>
+                        <div class="searchable-select">
+                            <input type="text" id="cap-cum" placeholder="-- Chọn/Nhập Cụm --" autocomplete="off">
+                            <span class="select-arrow"></span>
+                            <div class="select-dropdown" id="cap-cum-dropdown"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cap-store">Tên Cửa Hàng *</label>
+                        <div class="searchable-select">
+                            <input type="text" id="cap-store" placeholder="-- Chọn/Nhập Cửa Hàng --" autocomplete="off">
+                            <span class="select-arrow"></span>
+                            <div class="select-dropdown" id="cap-store-dropdown"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="cap-adjustment-section" class="section">
+                    <h2>ĐIỀU CHỈNH TỒN KHO CỦA CỬA HÀNG</h2>
+
+                    <div id="loading-stock-indicator" class="loading hidden">
+                        Đang tải tồn kho cửa hàng...
+                    </div>
+
+                    <div id="no-gifts-warning" class="warning-text hidden"></div>
+
+                    <div id="adjustment-fields" class="hidden">
+                        <div id="cap-items-container">
+                            <!-- Dynamic rows for adjustment -->
+                        </div>
+
+                        <button type="button" id="add-cap-item-btn" class="btn btn-secondary">+ THÊM DÒNG ĐIỀU
+                            CHỈNH</button>
+
+                        <div class="form-group">
+                            <label for="cap-ghi-chu">Lý do điều chỉnh (Ghi chú) *</label>
+                            <input type="text" id="cap-ghi-chu" placeholder="Lý do điều chỉnh kho...">
+                        </div>
+
+                        <button type="button" id="submit-cap-btn" class="btn btn-primary">LƯU ĐIỀU CHỈNH KHO</button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- <footer class="advanced-section">
+                <h3>CÀI ĐẶT NÂNG CAO</h3>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px;">
+                    <button type="button" id="wipe-db-btn" class="btn btn-warning" style="flex: 1; min-width: 200px; background-color: #f59e0b; border-color: #d97706; color: #ffffff;">Khôi phục lại dữ liệu ban đầu</button>
+                </div>
+            </footer> -->
+        </main>
+    </div>
+
+    <!-- Global datalist for gifts -->
+    <datalist id="gifts-datalist"></datalist>
+
+    <!-- Script module -->
+    <script type="module" src="script.js"></script>
+</body>
+
+</html>

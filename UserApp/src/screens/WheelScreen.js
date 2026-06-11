@@ -114,7 +114,7 @@ export default function WheelScreen() {
       const available = getAvailableGifts(storeId, stockData);
       setGifts(available);
       setIsLoadingStock(false);
-      if (available.length === 0) {
+      if (!available.some(g => g.currentStock > 0)) {
         setOutOfStockModalVisible(true);
       }
     } catch (err) {
@@ -173,7 +173,7 @@ export default function WheelScreen() {
   // ── Spin logic ─────────────────────────────────────────────────────────────
   const handleSpin = () => {
     audioHelper.playButtonClick();
-    if (isSpinning || hasSpun || gifts.length === 0 || isLoadingStock) return;
+    if (isSpinning || hasSpun || !gifts.some(g => g.currentStock > 0) || isLoadingStock) return;
     
     setIsSpinning(true);
     isSpinningRef.current = true; // Bắt đầu quay
@@ -573,7 +573,7 @@ export default function WheelScreen() {
           </Animated.View>
         )}
         {/* Bottle Cap Touch Button — only shown when gifts are loaded */}
-        {!isLoadingStock && !stockError && gifts.length > 0 && (
+        {!isLoadingStock && !stockError && gifts.some(g => g.currentStock > 0) && (
           <>
             {/* Cap pulse glow ring */}
             {!hasSpun && (
@@ -650,7 +650,7 @@ export default function WheelScreen() {
         ) : (
           <View style={styles.tapHintWrap}>
             <Text style={styles.tapHintText}>
-              {isLoadingStock ? 'Đang nạp dữ liệu...' : gifts.length === 0 ? 'Đã hết quà tặng!' : '↑  Nhấn nắp chai để quay'}
+              {isLoadingStock ? 'Đang nạp dữ liệu...' : !gifts.some(g => g.currentStock > 0) ? 'Đã hết quà tặng!' : '↑  Nhấn nắp chai để quay'}
             </Text>
           </View>
         )}
