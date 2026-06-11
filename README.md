@@ -12,8 +12,6 @@ Dự án bao gồm 3 phân hệ chính và thư mục cấu hình dùng chung:
 *   **`GameApp/`**: Game sút phạt Penalty 3D tương tác. Người chơi vuốt bóng (Flick/Drag) để sút qua thủ môn AI có khả năng nhảy cản phá tự động. (React Native / Expo).
 *   **`UserApp/`**: Form đăng ký thông tin khách hàng và Vòng quay may mắn (Lucky Wheel). Tự động lấy tồn kho thực tế tại từng chi nhánh để tính toán tỷ lệ trúng thưởng thời gian thực. (React Native / Expo).
 *   **`AdminApp/`**: Trang quản trị (Dashboard) cho phép quản lý nhập/xuất kho quà tặng thời gian thực và khôi phục nhanh hệ thống (Wipe database). (Vanilla HTML / CSS / JS).
-*   **`shared/`**: Thư mục chứa cấu hình môi trường dùng chung (`env.js`) của GameApp và UserApp. *(Thư mục này đã được ẩn trên Git vì lý do bảo mật thông tin kết nối API).*
-*   **`CocaColaShootout/google-apps-script/`**: Chứa mã nguồn backend Google Apps Script (`Code.gs`) phục vụ cho cơ sở dữ liệu Google Sheets.
 
 ---
 
